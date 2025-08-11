@@ -1,8 +1,6 @@
-import fetch from 'node-fetch';
-
 const CLIENT_ID = '1394432547928412272';
 const CLIENT_SECRET = 'syfHHQyg7CFeGUaDUtnz_nK7zu2pd9MA';
-const REDIRECT_URI = 'https://seunome.vercel.app/api/callback'; // coloque aqui o URL do seu deploy Vercel
+const REDIRECT_URI = 'https://bot-auth-nu.vercel.app/api/callback'; // seu domínio Vercel
 const SCOPES = 'identify email';
 
 export default async function handler(req, res) {
@@ -35,7 +33,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: tokenData.error_description });
     }
 
-    // Pega dados do usuário com access_token
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -44,10 +41,9 @@ export default async function handler(req, res) {
 
     const userData = await userResponse.json();
 
-    // Retorna as infos do usuário (pode personalizar)
     res.status(200).json({ user: userData });
-
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erro interno no servidor' });
   }
 }
