@@ -1,6 +1,6 @@
 const CLIENT_ID = '1394432547928412272';
-const CLIENT_SECRET = 'syfHHQyg7CFeGUaDUtnz_nK7zu2pd9MA';
-const REDIRECT_URI = 'https://bot-auth-nu.vercel.app/api/callback';
+const CLIENT_SECRET = 'RnoxxiS_aK2eIhsaZaU4u84xxU8PqTTz';
+const REDIRECT_URI = 'https://zlk-apps.vercel.app/api/callback';
 const SCOPES = 'identify email';
 
 module.exports = async function handler(req, res) {
@@ -129,3 +129,4 @@ module.exports = async function handler(req, res) {
     res.status(500).send('<h1>Erro interno no servidor</h1>');
   }
 };
+
