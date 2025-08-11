@@ -1,7 +1,6 @@
 const CLIENT_ID = '1394432547928412272';
 const CLIENT_SECRET = 'RnoxxiS_aK2eIhsaZaU4u84xxU8PqTTz';
 const REDIRECT_URI = 'https://zlk-apps.vercel.app/api/callback';
-const SCOPES = 'identify email';
 
 module.exports = async function handler(req, res) {
   const code = req.query.code;
@@ -18,7 +17,7 @@ module.exports = async function handler(req, res) {
     params.append('grant_type', 'authorization_code');
     params.append('code', code);
     params.append('redirect_uri', REDIRECT_URI);
-    params.append('scope', SCOPES);
+    // REMOVIDO: params.append('scope', SCOPES); -> Não deve enviar scope na troca de token
 
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -31,7 +30,7 @@ module.exports = async function handler(req, res) {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      res.status(400).send(`<h1>Erro: ${tokenData.error_description}</h1>`);
+      res.status(400).send(`<h1>Erro: ${tokenData.error_description || tokenData.error}</h1>`);
       return;
     }
 
@@ -125,8 +124,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).end(html);
   } catch (err) {
-    console.error(err);
+    console.error('Erro no handler OAuth:', err);
     res.status(500).send('<h1>Erro interno no servidor</h1>');
   }
 };
-
