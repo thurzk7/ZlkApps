@@ -1,5 +1,5 @@
 const CLIENT_ID = '1401392984007901304';
-const CLIENT_SECRET = 'nIjuYbxCNHYu42dWzJZwEVyjeDCjCuF3';
+const CLIENT_SECRET = 'uhgiv7840eK5rMijasQzjNnvh8-UU13E';
 const REDIRECT_URI = 'https://zlk-apps.vercel.app/api/callback';
 
 module.exports = async function handler(req, res) {
@@ -128,4 +128,5 @@ module.exports = async function handler(req, res) {
     res.status(500).send('<h1>Erro interno no servidor</h1>');
   }
 };
+
 
