@@ -10,12 +10,12 @@ const PORT = process.env.PORT || 3000;
 const config = {
   token: process.env.token,
   owner: process.env.owner,
-  clientid: process.env.client_id,
+  clientid: process.env.clientid,
   guild_id: process.env.guild_id,
   webhook_logs: process.env.webhook_logs,
-  role: process.env.role_id,
+  role: process.env.role,
   secret: process.env.secret,
-  redirect: process.env.redirect_uri
+  redirect: process.env.redirect
 };
 
 // Validação simples para garantir que configs estão definidas
