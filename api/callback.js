@@ -15,7 +15,7 @@ const config = {
   webhook_logs: process.env.webhook_logs,
   role: process.env.role,
   secret: process.env.secret,
-  redirect: process.env.redirect // Atenção: no .env, deve ser "redirect=https://zlk-apps.vercel.app"
+  redirect: process.env.redirect // No .env: redirect=https://zlk-apps.vercel.app
 };
 
 // Validação simples para garantir que configs estão definidas
@@ -121,7 +121,14 @@ app.get('/api/callback', async (req, res) => {
 
   } catch (err) {
     console.error("Erro na rota /api/callback:", err);
-    res.status(500).send("Erro interno no servidor");
+    // Tenta extrair mais info do erro, se possível
+    if (err.response) {
+      try {
+        const text = await err.response.text();
+        console.error("Response error body:", text);
+      } catch {}
+    }
+    res.status(500).send(`Erro interno no servidor: ${err.message}`);
   }
 });
 
