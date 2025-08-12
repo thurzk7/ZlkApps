@@ -15,7 +15,7 @@ const config = {
   webhook_logs: process.env.webhook_logs,
   role: process.env.role,
   secret: process.env.secret,
-  redirect: process.env.redirect
+  redirect: process.env.redirect // Atenção: no .env, deve ser "redirect=https://zlk-apps.vercel.app"
 };
 
 // Validação simples para garantir que configs estão definidas
@@ -55,6 +55,11 @@ app.get('/api/callback', async (req, res) => {
   }
 
   try {
+    // Remove barra final de redirect para evitar "//" no redirect_uri
+    const redirectUri = `${config.redirect.replace(/\/$/, '')}/api/callback`;
+    console.log("Usando redirect_uri para troca do token:", redirectUri);
+    console.log("Código recebido:", code);
+
     // 1️⃣ Troca o código pelo access token
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -64,12 +69,14 @@ app.get('/api/callback', async (req, res) => {
         client_secret: config.secret,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: `${config.redirect}/api/callback`
+        redirect_uri: redirectUri
       })
     });
 
     const tokenData = await tokenResponse.json();
+
     if (!tokenData.access_token) {
+      console.warn("Falha ao obter token:", tokenData);
       return res.status(400).json(tokenData);
     }
 
@@ -85,7 +92,7 @@ app.get('/api/callback', async (req, res) => {
       {
         $set: {
           username: userData.username,
-          acessToken: tokenData.access_token,
+          accessToken: tokenData.access_token,   // Corrigido typo aqui
           refreshToken: tokenData.refresh_token,
           email: userData.email || "Não Encontrado",
           verified: userData.verified,
@@ -113,7 +120,7 @@ app.get('/api/callback', async (req, res) => {
     res.redirect(config.redirect);
 
   } catch (err) {
-    console.error(err);
+    console.error("Erro na rota /api/callback:", err);
     res.status(500).send("Erro interno no servidor");
   }
 });
