@@ -1,0 +1,9 @@
+# Ignorar arquivo de config com token real
+config.local.js
+
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log
+yarn-error.log
