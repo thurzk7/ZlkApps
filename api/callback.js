@@ -1,28 +1,41 @@
+require('dotenv').config(); // carrega as variáveis do .env
+
 const express = require('express');
 const { MongoClient } = require('mongodb');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// ===== CONFIGURAÇÕES DO BOT =====
-let config;
-try {
-  config = require('./config.local.js'); // arquivo local com token real e secrets
-} catch {
-  config = require('./config.example.js'); // arquivo com dados fictícios para dev
-  console.warn("⚠️  Usando config.example.js — configure um config.local.js com seus dados reais.");
+// ===== CONFIGURAÇÕES DO BOT via variáveis de ambiente =====
+const config = {
+  token: process.env.token,
+  owner: process.env.owner,
+  clientid: process.env.client_id,
+  guild_id: process.env.guild_id,
+  webhook_logs: process.env.webhook_logs,
+  role: process.env.role_id,
+  secret: process.env.secret,
+  redirect: process.env.redirect_uri
+};
+
+// Validação simples para garantir que configs estão definidas
+for (const [key, value] of Object.entries(config)) {
+  if (!value) {
+    console.warn(`⚠️ Variável de ambiente ${key} não está definida!`);
+  }
 }
 
-// ===== CONFIGURAÇÃO DO MONGODB =====
-// (URI de exemplo — substitua pela sua)
-const MONGO_URI = "mongodb+srv://thurzw_:e3ArHwLV7BaisWpY@cluster0.xhu2n8w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const DB_NAME = "meuBanco";
-const COLLECTION_NAME = "users";
+const MONGO_URI = process.env.MONGO_URI;
+const DB_NAME = process.env.DB_NAME || "meuBanco";
+const COLLECTION_NAME = process.env.COLLECTION_NAME || "users";
 
 let db, usersCollection;
 
 // ===== CONEXÃO COM MONGODB =====
 async function connectMongo() {
+  if (!MONGO_URI) {
+    throw new Error("MONGO_URI não está definida nas variáveis de ambiente!");
+  }
   const client = new MongoClient(MONGO_URI);
   await client.connect();
   db = client.db(DB_NAME);
