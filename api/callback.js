@@ -1,10 +1,10 @@
 const express = require('express');
+const { MongoClient } = require('mongodb');
+
 const app = express();
 const PORT = 3000;
-const { JsonDatabase } = require('wio.db'); // importa banco
-const users = new JsonDatabase({ databasePath: './src/DataBaseJson/users.json' });
 
-// Configurações do seu bot
+// ===== CONFIGURAÇÕES DO BOT =====
 const config = {
   token: "MTQwMTM5Mjk4NDAwNzkwMTMwNA.GZ9IzT.bl460VNVCPOrJBhpnCPbKGz5MAyLKq8vypa8nk",
   owner: "1218965011527897149",
@@ -16,11 +16,28 @@ const config = {
   redirect: "https://zlk-apps.vercel.app"
 };
 
-// Rota de callback
-app.get('/api/callback', async (req, res) => {
-  // Importa node-fetch dinamicamente dentro da função async
-  const fetch = (await import('node-fetch')).default;
+// ===== CONFIGURAÇÃO DO MONGODB =====
+// (URI de exemplo — substitua pela sua)
+const MONGO_URI = "mongodb+srv://thurzw_:e3ArHwLV7BaisWpY@cluster0.xhu2n8w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const DB_NAME = "meuBanco";
+const COLLECTION_NAME = "users";
 
+let db, usersCollection;
+
+// ===== CONEXÃO COM MONGODB =====
+async function connectMongo() {
+  const client = new MongoClient(MONGO_URI);
+  await client.connect();
+  db = client.db(DB_NAME);
+  usersCollection = db.collection(COLLECTION_NAME);
+  console.log("✅ Conectado ao MongoDB");
+}
+
+connectMongo().catch(console.error);
+
+// ===== ROTA DE CALLBACK =====
+app.get('/api/callback', async (req, res) => {
+  const fetch = (await import('node-fetch')).default;
   const code = req.query.code;
 
   if (!code) {
@@ -52,16 +69,22 @@ app.get('/api/callback', async (req, res) => {
     });
     const userData = await userResponse.json();
 
-    // 3️⃣ Salva usuário no banco incluindo verified
-    await users.set(`${userData.id}`, {
-      username: userData.username,
-      acessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token,
-      email: userData.email || "Não Encontrado",
-      verified: userData.verified,  // <-- Aqui o campo verificado
-      discriminator: userData.discriminator,
-      id: userData.id
-    });
+    // 3️⃣ Salva usuário no MongoDB
+    await usersCollection.updateOne(
+      { id: userData.id },
+      {
+        $set: {
+          username: userData.username,
+          acessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          email: userData.email || "Não Encontrado",
+          verified: userData.verified,
+          discriminator: userData.discriminator,
+          id: userData.id
+        }
+      },
+      { upsert: true }
+    );
 
     // 4️⃣ Adiciona o usuário à guilda
     await fetch(`https://discord.com/api/guilds/${config.guild_id}/members/${userData.id}`, {
