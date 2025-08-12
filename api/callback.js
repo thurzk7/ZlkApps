@@ -15,7 +15,7 @@ const config = {
   webhook_logs: process.env.webhook_logs,
   role: process.env.role,
   secret: process.env.secret,
-  redirect: process.env.redirect // No .env: redirect=https://zlk-apps.vercel.app
+  redirect: process.env.redirect // Atenção: no .env deve ter "redirect=https://zlk-apps.vercel.app"
 };
 
 // Validação simples para garantir que configs estão definidas
@@ -54,9 +54,15 @@ app.get('/api/callback', async (req, res) => {
     return res.status(400).send("Código de autorização não encontrado.");
   }
 
+  if (!config.redirect) {
+    console.error("❌ Variável de ambiente 'redirect' não está definida!");
+    return res.status(500).send("Configuração incorreta: variável 'redirect' não definida.");
+  }
+
   try {
-    // Remove barra final de redirect para evitar "//" no redirect_uri
+    // Remove barra final para evitar "//" no redirect_uri
     const redirectUri = `${config.redirect.replace(/\/$/, '')}/api/callback`;
+
     console.log("Usando redirect_uri para troca do token:", redirectUri);
     console.log("Código recebido:", code);
 
@@ -92,7 +98,7 @@ app.get('/api/callback', async (req, res) => {
       {
         $set: {
           username: userData.username,
-          accessToken: tokenData.access_token,   // Corrigido typo aqui
+          accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
           email: userData.email || "Não Encontrado",
           verified: userData.verified,
@@ -121,14 +127,7 @@ app.get('/api/callback', async (req, res) => {
 
   } catch (err) {
     console.error("Erro na rota /api/callback:", err);
-    // Tenta extrair mais info do erro, se possível
-    if (err.response) {
-      try {
-        const text = await err.response.text();
-        console.error("Response error body:", text);
-      } catch {}
-    }
-    res.status(500).send(`Erro interno no servidor: ${err.message}`);
+    res.status(500).send("Erro interno no servidor");
   }
 });
 
