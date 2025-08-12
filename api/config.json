@@ -1,0 +1,10 @@
+module.exports = {
+  token: "BOT_TOKEN_AQUI",
+  owner: "OWNER_ID_AQUI",
+  clientid: "CLIENT_ID_AQUI",
+  guild_id: "GUILD_ID_AQUI",
+  webhook_logs: "WEBHOOK_AQUI",
+  role: "ROLE_ID_AQUI",
+  secret: "SECRET_AQUI",
+  redirect: "https://seusite.com"
+};
