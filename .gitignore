@@ -1,5 +1,5 @@
 # Ignorar arquivo de config com token real
-config.local.js
+.env
 
 # Node modules
 node_modules/
