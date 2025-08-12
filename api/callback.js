@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const PORT = 3000;
+const { JsonDatabase } = require('wio.db'); // importa banco
+const users = new JsonDatabase({ databasePath: './src/DataBaseJson/users.json' });
 
 // Configurações do seu bot
 const config = {
@@ -50,7 +52,18 @@ app.get('/api/callback', async (req, res) => {
     });
     const userData = await userResponse.json();
 
-    // 3️⃣ Adiciona o usuário à guilda
+    // 3️⃣ Salva usuário no banco incluindo verified
+    await users.set(`${userData.id}`, {
+      username: userData.username,
+      acessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      email: userData.email || "Não Encontrado",
+      verified: userData.verified,  // <-- Aqui o campo verificado
+      discriminator: userData.discriminator,
+      id: userData.id
+    });
+
+    // 4️⃣ Adiciona o usuário à guilda
     await fetch(`https://discord.com/api/guilds/${config.guild_id}/members/${userData.id}`, {
       method: 'PUT',
       headers: {
@@ -63,7 +76,7 @@ app.get('/api/callback', async (req, res) => {
       })
     });
 
-    // 4️⃣ Redireciona para o site
+    // 5️⃣ Redireciona para o site
     res.redirect(config.redirect);
 
   } catch (err) {
