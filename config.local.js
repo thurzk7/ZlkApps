@@ -1,5 +1,5 @@
 module.exports = {
-  token: "MTQwMTM5Mjk4NDAwNzkwMTMwNA.GuTwlE.Fi9XBnGLHBfxU4nQxIGszEMAi1PUYYaOEGvh1c",
+  token: "MTQwMTM5Mjk4NDAwNzkwMTMwNA.GcG78k.I8PKCE7w2zQnTScFTRLU2r_EQmCyGfBTdRyMAg",
   owner: "1218965011527897149",
   clientid: "1401392984007901304",
   guild_id: "1230888692005081098",
