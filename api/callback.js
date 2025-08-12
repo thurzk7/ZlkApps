@@ -1,5 +1,6 @@
 const express = require('express');
-const fetch = require('node-fetch');
+const fetch = await import('node-fetch').then(mod => mod.default);
+
 
 const app = express();
 const PORT = 3000;
@@ -74,3 +75,4 @@ app.get('/api/callback', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
+
