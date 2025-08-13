@@ -1,136 +1,130 @@
-require('dotenv').config(); // carrega as variáveis do .env
+const CLIENT_ID = '1401392984007901304';
+const CLIENT_SECRET = 'z4LlBCIr1SW5rDGPChpu2viuuMuCv7iF';
+const REDIRECT_URI = 'https://zlk-apps.vercel.app/api/callback';
 
-const express = require('express');
-const { MongoClient } = require('mongodb');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ===== CONFIGURAÇÕES DO BOT via variáveis de ambiente =====
-const config = {
-  token: process.env.token,
-  owner: process.env.owner,
-  clientid: process.env.clientid,
-  guild_id: process.env.guild_id,
-  webhook_logs: process.env.webhook_logs,
-  role: process.env.role,
-  secret: process.env.secret,
-  redirect: process.env.redirect // Atenção: no .env deve ter "redirect=https://zlk-apps.vercel.app"
-};
-
-// Validação simples para garantir que configs estão definidas
-for (const [key, value] of Object.entries(config)) {
-  if (!value) {
-    console.warn(`⚠️ Variável de ambiente ${key} não está definida!`);
-  }
-}
-
-const MONGO_URI = process.env.MONGO_URI;
-const DB_NAME = process.env.DB_NAME || "meuBanco";
-const COLLECTION_NAME = process.env.COLLECTION_NAME || "users";
-
-let db, usersCollection;
-
-// ===== CONEXÃO COM MONGODB =====
-async function connectMongo() {
-  if (!MONGO_URI) {
-    throw new Error("MONGO_URI não está definida nas variáveis de ambiente!");
-  }
-  const client = new MongoClient(MONGO_URI);
-  await client.connect();
-  db = client.db(DB_NAME);
-  usersCollection = db.collection(COLLECTION_NAME);
-  console.log("✅ Conectado ao MongoDB");
-}
-
-connectMongo().catch(console.error);
-
-// ===== ROTA DE CALLBACK =====
-app.get('/api/callback', async (req, res) => {
-  const fetch = (await import('node-fetch')).default;
+module.exports = async function handler(req, res) {
   const code = req.query.code;
 
   if (!code) {
-    return res.status(400).send("Código de autorização não encontrado.");
-  }
-
-  if (!config.redirect) {
-    console.error("❌ Variável de ambiente 'redirect' não está definida!");
-    return res.status(500).send("Configuração incorreta: variável 'redirect' não definida.");
+    res.status(400).send('Código OAuth não fornecido.');
+    return;
   }
 
   try {
-    // Remove barra final para evitar "//" no redirect_uri
-    const redirectUri = `${config.redirect.replace(/\/$/, '')}/api/callback`;
+    const params = new URLSearchParams();
+    params.append('client_id', CLIENT_ID);
+    params.append('client_secret', CLIENT_SECRET);
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('redirect_uri', REDIRECT_URI);
+    // REMOVIDO: params.append('scope', SCOPES); -> Não deve enviar scope na troca de token
 
-    console.log("Usando redirect_uri para troca do token:", redirectUri);
-    console.log("Código recebido:", code);
-
-    // 1️⃣ Troca o código pelo access token
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: config.clientid,
-        client_secret: config.secret,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri
-      })
+      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
 
     const tokenData = await tokenResponse.json();
 
-    if (!tokenData.access_token) {
-      console.warn("Falha ao obter token:", tokenData);
-      return res.status(400).json(tokenData);
+    if (tokenData.error) {
+      res.status(400).send(<h1>Erro: ${tokenData.error_description || tokenData.error}</h1>);
+      return;
     }
 
-    // 2️⃣ Busca dados do usuário
     const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+      headers: {
+        Authorization: Bearer ${tokenData.access_token},
+      },
     });
+
     const userData = await userResponse.json();
 
-    // 3️⃣ Salva usuário no MongoDB
-    await usersCollection.updateOne(
-      { id: userData.id },
-      {
-        $set: {
-          username: userData.username,
-          accessToken: tokenData.access_token,
-          refreshToken: tokenData.refresh_token,
-          email: userData.email || "Não Encontrado",
-          verified: userData.verified,
-          discriminator: userData.discriminator,
-          id: userData.id
+    const html = 
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Login Bem Sucedido</title>
+      <style>
+        @keyframes backgroundPulse {
+          0%, 100% { background-color: #000; }
+          50% { background-color: #fff; }
         }
-      },
-      { upsert: true }
-    );
+        body {
+          margin: 0;
+          height: 100vh;
+          animation: backgroundPulse 10s infinite alternate ease-in-out;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          color: #222;
+          transition: color 1s ease;
+        }
+        .container {
+          background: rgba(0, 0, 0, 0.7);
+          padding: 40px;
+          border-radius: 20px;
+          text-align: center;
+          box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+          color: white;
+          max-width: 360px;
+          width: 90%;
+        }
+        img.avatar {
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          border: 4px solid white;
+          margin-bottom: 25px;
+          box-shadow: 0 0 15px white;
+        }
+        h1 {
+          margin: 0 0 10px;
+          font-size: 28px;
+          font-weight: 700;
+          color: white;
+        }
+        p {
+          font-size: 18px;
+          margin: 0 0 25px;
+          color: #ccc;
+        }
+        a.button {
+          background: #1db954;
+          color: white;
+          text-decoration: none;
+          padding: 14px 35px;
+          border-radius: 40px;
+          font-weight: 600;
+          box-shadow: 0 4px 20px rgba(29, 185, 84, 0.7);
+          transition: background-color 0.3s ease;
+          display: inline-block;
+        }
+        a.button:hover {
+          background: #17a44a;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <img class="avatar" src="https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png" alt="Avatar de ${userData.username}" />
+        <h1>Bem-vindo, ${userData.username}!</h1>
+        <p>Seu login foi realizado com sucesso.</p>
+        <a href="/" class="button">Voltar ao site</a>
+      </div>
+    </body>
+    </html>
+    ;
 
-    // 4️⃣ Adiciona o usuário à guilda
-    await fetch(`https://discord.com/api/guilds/${config.guild_id}/members/${userData.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bot ${config.token}`
-      },
-      body: JSON.stringify({
-        access_token: tokenData.access_token,
-        roles: [config.role]
-      })
-    });
-
-    // 5️⃣ Redireciona para o site
-    res.redirect(config.redirect);
-
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.status(200).end(html);
   } catch (err) {
-    console.error("Erro na rota /api/callback:", err);
-    res.status(500).send("Erro interno no servidor");
+    console.error('Erro no handler OAuth:', err);
+    res.status(500).send('<h1>Erro interno no servidor</h1>');
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+};
