@@ -24,6 +24,7 @@
     "ua-parser-js": "^1.0.39",
     "user-agent": "^1.0.4",
     "wio.db": "^4.0.22",
-    "mongodb": "^5.9.0"
+    "mongodb": "^5.9.0",
+    "dotenv": "^16.3.1"
   }
 }
