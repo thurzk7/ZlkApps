@@ -1,6 +1,8 @@
+require("dotenv").config(); // carrega variáveis do .env
+
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder } = require("discord.js");
 const { dbC, dbP, users } = require("../databases/index");
-const { token, url_apiHost } = require("../config.json");
+const { token, url_apiHost } = require("../config.json"); // ainda puxando os outros daqui
 const { website1 } = require("../functions/website1");
 const { Router } = require("express");
 const router = Router();
@@ -10,6 +12,9 @@ const requestIp = require("request-ip");
 const moment = require("moment");
 const axios = require("axios");
 const uaParser = require('ua-parser-js');
+
+// token agora vem do .env
+const TOKEN = process.env.DISCORD_BOT_TOKEN || token;
 
 router.get("/api/callback", async (req, res) => {
 
@@ -51,7 +56,7 @@ router.get("/api/callback", async (req, res) => {
     const user = responseUser.data;
     const guildMemberResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, {
         headers: {
-            'Authorization': `Bot ${token}`
+            'Authorization': `Bot ${TOKEN}`
         }
     }).catch(() => { });
 
@@ -60,7 +65,7 @@ router.get("/api/callback", async (req, res) => {
     const newRoles = [...new Set([...currentRoles, role])];
     const guildUrl = `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`;
     const headers = {
-        'Authorization': `Bot ${token}`,
+        'Authorization': `Bot ${TOKEN}`,
         'Content-Type': 'application/json',
     };
 
@@ -72,7 +77,7 @@ router.get("/api/callback", async (req, res) => {
 
     const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
         headers: {
-            'Authorization': `Bot ${token}`
+            'Authorization': `Bot ${TOKEN}`
         }
     }).catch(err => {
         console.error(err);
@@ -121,7 +126,7 @@ router.get("/api/callback", async (req, res) => {
 
                     await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, {
                         headers: {
-                            'Authorization': `Bot ${token}`
+                            'Authorization': `Bot ${TOKEN}`
                         }
                     }).catch(err => {
                         console.error("🔴 Erro ao expulsar membro:", err);
