@@ -17,7 +17,6 @@ module.exports = async function handler(req, res) {
     params.append('grant_type', 'authorization_code');
     params.append('code', code);
     params.append('redirect_uri', REDIRECT_URI);
-    // REMOVIDO: params.append('scope', SCOPES); -> Não deve enviar scope na troca de token
 
     const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -30,19 +29,19 @@ module.exports = async function handler(req, res) {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      res.status(400).send(<h1>Erro: ${tokenData.error_description || tokenData.error}</h1>);
+      res.status(400).send(`<h1>Erro: ${tokenData.error_description || tokenData.error}</h1>`);
       return;
     }
 
     const userResponse = await fetch('https://discord.com/api/users/@me', {
       headers: {
-        Authorization: Bearer ${tokenData.access_token},
+        Authorization: `Bearer ${tokenData.access_token}`,
       },
     });
 
     const userData = await userResponse.json();
 
-    const html = 
+    const html = `
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
@@ -119,7 +118,7 @@ module.exports = async function handler(req, res) {
       </div>
     </body>
     </html>
-    ;
+    `;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(200).end(html);
