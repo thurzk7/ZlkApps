@@ -1,33 +1,22 @@
-const { } = require("discord.js");
-const { dbC } = require("../databases/index");
-const { token } = require("../config.json");
+const { getConfig } = require("../databases/index");
+const token = process.env.DISCORD_BOT_TOKEN;
 const axios = require("axios");
 
 async function website1(res, guild_id) {
-
     const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
-        headers: {
-            'Authorization': `Bot ${token}`
-        }
-    }).catch(err => {
-        console.error(err);
-    });
+        headers: { Authorization: `Bot ${token}` }
+    }).catch(console.error);
 
-    const guildName = guildResponse.data.name || "SkyAppsOAuth2";
-    const guildId = guildResponse.data.id;
-    const iconId = guildResponse.data.icon;
+    const guildName = guildResponse?.data?.name || "SkyAppsOAuth2";
+    const guildId = guildResponse?.data?.id;
+    const iconId = guildResponse?.data?.icon;
+    const iconExtension = iconId?.startsWith("a_") ? "gif" : "png";
 
-    const iconExtension = iconId.startsWith('a_') ? 'gif' : 'png';
-
-    const image1 = 'https://i.ibb.co/0q1ybhK/discord-logo-2.webp';
-    const image2 = 'https://i.ibb.co/5GD21DF/discord-logo-1-1.webp';
-    const image3 = await dbC.get("webSite.bannerUrl") || 'https://i.ibb.co/VjWH1kV/9f58ba77d85faa95ec9da272efafc35d.webp';
-    const image4 = await dbC.get("webSite.iconUrl") || `https://cdn.discordapp.com/icons/${guildId}/${iconId}.${iconExtension}`;
-
-    const buttonName = await dbC.get("webSite.butName") || "Voltar para o servidor";
-    const buttonUrl = await dbC.get("webSite.urlButton") || "https://discord.com/";
-
-    const seconds = await dbC.get("webSite.seconds") || 10;
+    const image3 = await getConfig("webSite.bannerUrl", "https://i.ibb.co/VjWH1kV/9f58ba77d85faa95ec9da272efafc35d.webp");
+    const image4 = await getConfig("webSite.iconUrl", `https://cdn.discordapp.com/icons/${guildId}/${iconId}.${iconExtension}`);
+    const buttonName = await getConfig("webSite.butName", "Voltar para o servidor");
+    const buttonUrl = await getConfig("webSite.urlButton", "https://discord.com/");
+    const seconds = await getConfig("webSite.seconds", 10);
 
     res.send(`<!DOCTYPE html>
 <html lang="en">
