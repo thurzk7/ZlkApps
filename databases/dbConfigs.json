@@ -1,0 +1,57 @@
+{
+    "sistema": true,
+    "design": {
+        "mode": "1",
+        "content": "✅ Verifica-se por gentileza\n- Sua verificação é crucial para garantir a segurança do servidor e manter nossa comunidade protegida.\n- Também é essencial concluir a verificação para realizar compras no servidor e não perder o acesso aos melhores preços do Discord.",
+        "embed": {
+            "color": null,
+            "title": "Backup",
+            "desc": "`✅` verifica-se por gentileza",
+            "thumb": null
+        },
+        "but": {
+            "label": null,
+            "emoji": null
+        },
+        "channelMsg": "1308869574216908900",
+        "panelMsgId": "1308925984715575368",
+        "banner": "https://cdn.discordapp.com/attachments/1308869574216908900/1310407933380792380/IMG-20241115-WA0365.jpg?ex=67451bfd&is=6743ca7d&hm=9ac30f6c3d929e5a8116cd74edce58a886dd94029ac417d95a6bb7de6ebbe03f&"
+    },
+    "rastrear": {
+        "ALT": true,
+        "EMAIL": true,
+        "IPUSER": true
+    },
+    "channels": {
+        "logsPriv": "1308873555143950346"
+    },
+    "roles": {
+        "verify": "1308799493155717170"
+    },
+    "webSite": {
+        "iconUrl": "https://cdn.discordapp.com/attachments/1305647944233652395/1308877082721517570/8528252.png?ex=673f8a46&is=673e38c6&hm=bbcc3307db10f84ff38c8d906e182734d46c921125846ef4656c0264296432bc&",
+        "bannerUrl": "https://cdn.discordapp.com/attachments/1305647944233652395/1308877082721517570/8528252.png?ex=673f8a46&is=673e38c6&hm=bbcc3307db10f84ff38c8d906e182734d46c921125846ef4656c0264296432bc&",
+        "urlGuild": null,
+        "butName": null,
+        "seconds": null,
+        "urlButton": "https://discord.com/oauth2/authorize?client_id=1393676102999740487&response_type=code&redirect_uri=https%3A%2F%2Fzlk-apps.vercel.app%2Fapi%2Fcallback&scope=identify+gdm.join+email+guilds.join"
+    },
+    "sales": {
+        "status": true,
+        "min": null,
+        "unidade": 0.03,
+        "mp": {
+            "status": true,
+            "access": "APP_USR-6369738590014342-121912-90baeb49bf95bae7605573af3ca330e6-1601418410",
+            "tempPay": "10",
+            "banksOff": []
+        },
+        "semi": {
+            "status": true,
+            "tipo": "Email",
+            "chave": "gostbanido@outlook.com",
+            "tempPay": "10",
+            "roleAprove": null
+        }
+    }
+}
