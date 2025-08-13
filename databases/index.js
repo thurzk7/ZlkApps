@@ -1,20 +1,24 @@
 const { MongoClient } = require("mongodb");
+require("dotenv").config(); // Carrega .env
 
-// URL do MongoDB (você cria uma conta no Atlas e pega a connection string)
-const uri = "mongodb+srv://thurzw_:e3ArHwLV7BaisWpY@cluster0.xhu2n8w.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
 let dbC, dbP, users, carts;
 
 async function initDB() {
     await client.connect();
-    const db = client.db("meuDB"); // nome do seu banco
+    const db = client.db("meuDB"); // nome do seu DB
 
-    // Coleções equivalentes aos JSONs
     dbC = db.collection("configs");
     dbP = db.collection("principios");
     users = db.collection("users");
     carts = db.collection("carts");
 }
 
-module.exports = { initDB, dbC, dbP, users, carts };
+async function getConfig(key, defaultValue) {
+    const doc = await dbC.findOne({ key });
+    return doc ? doc.value : defaultValue;
+}
+
+module.exports = { initDB, dbC, dbP, users, carts, getConfig };
