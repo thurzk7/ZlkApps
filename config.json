@@ -1,10 +1,6 @@
-module.exports = {
-  token: "BOT_TOKEN_AQUI",
-  owner: "OWNER_ID_AQUI",
-  clientid: "CLIENT_ID_AQUI",
-  guild_id: "GUILD_ID_AQUI",
-  webhook_logs: "WEBHOOK_AQUI",
-  role: "ROLE_ID_AQUI",
-  secret: "SECRET_AQUI",
-  redirect: "https://seusite.com"
-};
+{
+  "url_apiHost": "https://zlk-apps.vercel.app",
+  "owner": "1218965011527897149",
+  "botid": "1401392984007901304",
+  "EXPIRATION": ""
+}
