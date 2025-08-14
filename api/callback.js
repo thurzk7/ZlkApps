@@ -14,7 +14,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
   try {
-    // 🔹 Inicializa o banco ANTES de qualquer operação
+    // 🔹 Inicializa o banco ANTES de qualquer operação aa
     await initDB();
 
     // Pega configs do MongoDB, com fallback para .env
@@ -134,6 +134,7 @@ router.get("/api/callback", async (req, res) => {
 });
 
 module.exports = router;
+
 
 
 
