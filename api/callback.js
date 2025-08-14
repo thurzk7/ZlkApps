@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const { EmbedBuilder } = require("discord.js");
-const { getDbC, getDbP, updateUsers, users } = require("../databases/index"); // agora usa updateUsers e users exportados
+const { initDB, getDbC, getDbP, updateUsers } = require("../databases/index"); // troquei para usar updateUsers
 const { Router } = require("express");
 const router = Router();
 const discordOauth = require("discord-oauth2");
@@ -10,12 +10,14 @@ const requestIp = require("request-ip");
 const axios = require("axios");
 const { website1 } = require("../functions/website1");
 
-// Token do Discord do .env
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
   try {
-    // 🔹 Pega configs do MongoDB, com fallback para .env caso não exista
+    // 🔹 Inicializa o banco ANTES de qualquer operação
+    await initDB();
+
+    // Pega configs do MongoDB, com fallback para .env
     const clientid = await getDbP("autoSet.clientid", process.env.clientid);
     const guild_id = await getDbP("autoSet.guildid", process.env.guild_id);
     const secret = await getDbP("manualSet.secretBot", process.env.secret);
@@ -29,20 +31,19 @@ router.get("/api/callback", async (req, res) => {
     const { code } = req.query;
     if (!code) return res.status(400).json({ message: "📡 | Está faltando query...", status: 400 });
 
-    // Exibe o website
+    // Website
     website1(res, guild_id);
 
-    const redirectUri = `${process.env.URL_APIHOST}/api/callback`;
+    const redirectUri = `${process.env.url_apiHost}/api/callback`;
 
-    // Pega token do Discord
     const responseToken = await axios.post(
       "https://discord.com/api/oauth2/token",
       `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${redirectUri}&scope=identify`,
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
+
     const token2 = responseToken.data;
 
-    // Pega dados do usuário
     const responseUser = await axios.get("https://discord.com/api/users/@me", {
       headers: { authorization: `${token2.token_type} ${token2.access_token}` }
     }).catch(() => null);
@@ -50,7 +51,6 @@ router.get("/api/callback", async (req, res) => {
 
     const user = responseUser.data;
 
-    // Pega membro do servidor
     const guildMemberResponse = await axios.get(
       `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
       { headers: { Authorization: `Bot ${TOKEN}` } }
@@ -81,16 +81,14 @@ router.get("/api/callback", async (req, res) => {
     const iconId = guildResponse.data.icon;
     const iconExtension = iconId?.startsWith("a_") ? "gif" : "png";
 
-    // Configurações de rastreio
     const altPuede = await getDbC("rastrear.ALT", false);
     const emailPuede = await getDbC("rastrear.EMAIL", false);
     const ipPuede = await getDbC("rastrear.IPUSER", false);
 
-    // Usuário existente pelo IP
-    const dataAll = await users.find({}).toArray();
+    // Busca usuários no Mongo
+    const dataAll = await updateUsers({}, {}); // só para garantir init
     const existingUser = dataAll.find(u => u.ipuser === ip);
 
-    // Cria embed
     const embed = new EmbedBuilder()
       .setColor("#00FF00")
       .setAuthor({ name: `${user.username} - Novo Usuário Verificado`, iconURL: `https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}` })
@@ -116,7 +114,7 @@ router.get("/api/callback", async (req, res) => {
 
     if (webhook_logs) await axios.post(webhook_logs, { content: `<@${user.id}>`, embeds: [embed.toJSON()] });
 
-    // Salva ou atualiza usuário usando função do database
+    // Salva ou atualiza usuário
     await updateUsers(
       { _id: user.id },
       {
