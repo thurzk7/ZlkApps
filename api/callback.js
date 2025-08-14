@@ -29,17 +29,17 @@ router.get("/api/callback", async (req, res) => {
 
     const redirectUri = `${process.env.url_apiHost}/api/callback`;
 
-    // ⚡ Troca o code por token
-    const params = new URLSearchParams();
-    params.append("client_id", clientid);
-    params.append("client_secret", secret);
-    params.append("code", code);
-    params.append("grant_type", "authorization_code");
-    params.append("redirect_uri", redirectUri);
-    params.append("scope", "identify email guilds.join");
-
+    // ⚡ Troca o code pelo access_token
     let tokenData;
     try {
+      const params = new URLSearchParams();
+      params.append("client_id", clientid);
+      params.append("client_secret", secret);
+      params.append("code", code);
+      params.append("grant_type", "authorization_code");
+      params.append("redirect_uri", redirectUri);
+      params.append("scope", "identify");
+
       const responseToken = await axios.post(
         "https://discord.com/api/oauth2/token",
         params.toString(),
@@ -53,15 +53,14 @@ router.get("/api/callback", async (req, res) => {
       throw err;
     }
 
-    // ⚡ Pega informações do usuário
+    // ⚡ Pega dados do usuário
     const responseUser = await axios.get("https://discord.com/api/users/@me", {
       headers: { authorization: `${tokenData.token_type} ${tokenData.access_token}` }
     }).catch(() => null);
     if (!responseUser?.data) return res.status(400).json({ message: "❌ Não foi possível obter dados do usuário." });
-
     const user = responseUser.data;
 
-    // ⚡ Confere se o usuário já está no servidor
+    // ⚡ Verifica se o usuário está no servidor e adiciona role
     const guildMemberResponse = await axios.get(
       `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
       { headers: { Authorization: `Bot ${TOKEN}` } }
@@ -79,54 +78,12 @@ router.get("/api/callback", async (req, res) => {
       ).catch(() => null);
     }
 
-    // ⚡ Dados do servidor
-    const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
-      headers: { Authorization: `Bot ${TOKEN}` }
-    }).catch(console.error);
-
-    const avatarId = user.avatar;
-    const userId = user.id;
-    const avatarExtension = avatarId?.startsWith("a_") ? "gif" : "png";
-
-    const guildIconId = guildResponse?.data?.icon;
-    const guildIconExtension = guildIconId?.startsWith("a_") ? "gif" : "png";
-
-    // ⚡ Rastreios opcionais
-    const altPuede = await getDbC("rastrear.ALT", false);
-    const emailPuede = await getDbC("rastrear.EMAIL", false);
-    const ipPuede = await getDbC("rastrear.IPUSER", false);
-
-    const allUsers = []; // Aqui você pode implementar busca real no banco de usuários
-    const existingUser = allUsers.find(u => u.ipuser === ip);
-
-    // ⚡ Embed de logs
-    const embed = new EmbedBuilder()
-      .setColor("#00FF00")
-      .setAuthor({ name: `${user.username} - Novo Usuário Verificado`, iconURL: `https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}` })
-      .setThumbnail(`https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}`)
-      .addFields({ name: "Usuário", value: `\`@${user.username}\``, inline: true })
-      .setFooter({ text: guildResponse?.data?.name || "Servidor", iconURL: `https://cdn.discordapp.com/icons/${guild_id}/${guildIconId}.${guildIconExtension}` })
-      .setTimestamp();
-
-    if (emailPuede) embed.addFields({ name: "Email", value: `\`📨 ${user.email || "Não disponível"}\``, inline: true });
-    if (altPuede) {
-      if (existingUser && existingUser._id !== user.id) {
-        embed.addFields({ name: "Account Alt", value: `\`🎯 Conta alt detectada!\`\n\`👤 @${user.username} - @${existingUser.username}\`` });
-        await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
-      } else {
-        embed.addFields({ name: "Account Alt", value: "🔴 Não identificado(a).", inline: true });
-      }
-    }
-    if (ipPuede) embed.addFields({ name: "Ip Info User", value: `||${ip}|| **| [🔗](https://ipinfo.io/${ip})**`, inline: true });
-
-    if (webhook_logs) await axios.post(webhook_logs, { content: `<@${user.id}>`, embeds: [embed.toJSON()] });
-
-    // ⚡ Atualiza banco
+    // ⚡ Atualiza ou cria usuário no DB
     await updateUsers(
       { _id: user.id },
       {
         username: user.username,
-        acessToken: tokenData.access_token,
+        accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
         code,
         email: user.email,
@@ -134,8 +91,8 @@ router.get("/api/callback", async (req, res) => {
       }
     );
 
-    // ⚡ Finalmente envia a página de verificação
-    return website1(res, guild_id);
+    // ⚡ Renderiza página de sucesso
+    await website1(res, guild_id);
 
   } catch (err) {
     console.error("Erro no callback:", err);
