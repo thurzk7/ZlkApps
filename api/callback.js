@@ -1,7 +1,6 @@
 require("dotenv").config();
-
 const { EmbedBuilder } = require("discord.js");
-const { initDB, getDbC, getDbP, updateUsers } = require("../databases/index"); // troquei para usar updateUsers
+const { initDB, getDbC, getDbP, updateUsers } = require("../databases/index");
 const { Router } = require("express");
 const router = Router();
 const discordOauth = require("discord-oauth2");
@@ -14,40 +13,52 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
   try {
-    // 🔹 Inicializa o banco ANTES de qualquer operação aa
     await initDB();
 
-    // Pega configs do MongoDB, com fallback para .env
     const clientid = await getDbP("autoSet.clientid", process.env.clientid);
     const guild_id = await getDbP("autoSet.guildid", process.env.guild_id);
     const secret = await getDbP("manualSet.secretBot", process.env.secret);
     const webhook_logs = await getDbP("manualSet.webhook", process.env.webhook_logs) || null;
     const role = await getDbC("roles.verify", null);
-
     const status = (await getDbC("sistema", true)) ?? true;
     if (!status) return res.status(400).json({ message: "`🔴` Oauth2 está desligado", status: 400 });
 
     const ip = requestIp.getClientIp(req);
     const { code } = req.query;
-    if (!code) return res.status(400).json({ message: "📡 | Está faltando query...", status: 400 });
+    if (!code) return res.status(400).json({ message: "📡 | Está faltando query `code`", status: 400 });
 
-    // Website
     website1(res, guild_id);
 
     const redirectUri = `${process.env.url_apiHost}/api/callback`;
 
-    const responseToken = await axios.post(
-      "https://discord.com/api/oauth2/token",
-      `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${redirectUri}&scope=identify`,
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
+    // ⚡ Usando URLSearchParams para evitar problemas com caracteres especiais
+    const params = new URLSearchParams();
+    params.append("client_id", clientid);
+    params.append("client_secret", secret);
+    params.append("code", code);
+    params.append("grant_type", "authorization_code");
+    params.append("redirect_uri", redirectUri);
+    params.append("scope", "identify");
 
-    const token2 = responseToken.data;
+    let token2;
+    try {
+      const responseToken = await axios.post(
+        "https://discord.com/api/oauth2/token",
+        params.toString(),
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      );
+      token2 = responseToken.data;
+    } catch (err) {
+      if (err.response?.data?.error === "invalid_grant") {
+        return res.status(400).json({ message: "❌ Código expirado ou inválido. Tente novamente.", status: 400 });
+      }
+      throw err;
+    }
 
     const responseUser = await axios.get("https://discord.com/api/users/@me", {
       headers: { authorization: `${token2.token_type} ${token2.access_token}` }
     }).catch(() => null);
-    if (!responseUser?.data) return;
+    if (!responseUser?.data) return res.status(400).json({ message: "❌ Não foi possível obter dados do usuário." });
 
     const user = responseUser.data;
 
@@ -55,7 +66,7 @@ router.get("/api/callback", async (req, res) => {
       `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
       { headers: { Authorization: `Bot ${TOKEN}` } }
     ).catch(() => null);
-    if (!guildMemberResponse) return;
+    if (!guildMemberResponse) return res.status(400).json({ message: "❌ Usuário não encontrado no servidor." });
 
     const currentRoles = guildMemberResponse.data.roles;
     const newRoles = [...new Set([...currentRoles, role])];
@@ -85,8 +96,7 @@ router.get("/api/callback", async (req, res) => {
     const emailPuede = await getDbC("rastrear.EMAIL", false);
     const ipPuede = await getDbC("rastrear.IPUSER", false);
 
-    // Busca usuários no Mongo
-    const dataAll = await updateUsers({}, {}); // só para garantir init
+    const dataAll = await updateUsers({}, {});
     const existingUser = dataAll.find(u => u.ipuser === ip);
 
     const embed = new EmbedBuilder()
@@ -97,7 +107,7 @@ router.get("/api/callback", async (req, res) => {
       .setFooter({ text: guildResponse.data.name, iconURL: `https://cdn.discordapp.com/icons/${guildId}/${iconId}.${iconExtension}` })
       .setTimestamp();
 
-    if (emailPuede) embed.addFields({ name: "Email", value: `\`📨 ${user.email}\``, inline: true });
+    if (emailPuede) embed.addFields({ name: "Email", value: `\`📨 ${user.email || "Não disponível"}\``, inline: true });
 
     if (altPuede) {
       if (existingUser && existingUser._id !== user.id) {
@@ -109,12 +119,10 @@ router.get("/api/callback", async (req, res) => {
     }
 
     if (ipPuede) embed.addFields({ name: "Ip Info User", value: `||${ip}|| **| [🔗](<https://ipinfo.io/${ip}>)**`, inline: true });
-
     embed.addFields({ name: "Data de criação", value: `<t:${parseInt(creationDate / 1000)}:R>`, inline: true });
 
     if (webhook_logs) await axios.post(webhook_logs, { content: `<@${user.id}>`, embeds: [embed.toJSON()] });
 
-    // Salva ou atualiza usuário
     await updateUsers(
       { _id: user.id },
       {
@@ -127,6 +135,8 @@ router.get("/api/callback", async (req, res) => {
       }
     );
 
+    res.send("✅ Usuário verificado com sucesso!");
+
   } catch (err) {
     console.error("Erro no callback:", err);
     return res.status(500).json({ message: "Erro interno no servidor" });
@@ -134,8 +144,3 @@ router.get("/api/callback", async (req, res) => {
 });
 
 module.exports = router;
-
-
-
-
-
