@@ -15,11 +15,11 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
   try {
-    // Pega configs do MongoDB usando funções assíncronas
-    const clientid = await getDbP("autoSet.clientid", "");
-    const guild_id = await getDbP("autoSet.guildid", "");
-    const secret = await getDbP("manualSet.secretBot", "");
-    const webhook_logs = await getDbP("manualSet.webhook", null);
+    // Pega configs do MongoDB, com fallback para .env caso não exista
+    const clientid = await getDbP("autoSet.clientid", process.env.CLIENTID);
+    const guild_id = await getDbP("autoSet.guildid", process.env.GUILDID);
+    const secret = await getDbP("manualSet.secretBot", process.env.SECRET);
+    const webhook_logs = await getDbP("manualSet.webhook", process.env.WEBHOOK) || null;
     const role = await getDbC("roles.verify", null);
 
     const status = (await getDbC("sistema", true)) ?? true;
@@ -32,10 +32,13 @@ router.get("/api/callback", async (req, res) => {
     // Exibe o website
     website1(res, guild_id);
 
+    // Define redirect URI corretamente
+    const redirectUri = `${process.env.URL_APIHOST}/api/callback`;
+
     // Pega token do Discord
     const responseToken = await axios.post(
       "https://discord.com/api/oauth2/token",
-      `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${process.env.URL_APIHOST}/api/callback&scope=identify`,
+      `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${redirectUri}&scope=identify`,
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
     const token2 = responseToken.data;
