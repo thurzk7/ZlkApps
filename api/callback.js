@@ -7,7 +7,6 @@ const router = Router();
 const discordOauth = require("discord-oauth2");
 const oauth = new discordOauth();
 const requestIp = require("request-ip");
-const moment = require("moment");
 const axios = require("axios");
 const { website1 } = require("../functions/website1");
 
@@ -15,6 +14,11 @@ const { website1 } = require("../functions/website1");
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
+    // Garante que o banco está inicializado
+    if (!dbC || !dbP || !users) {
+        return res.status(500).json({ message: "Banco de dados não inicializado ainda" });
+    }
+
     // Pega configs do MongoDB
     const clientid = await getDbP("autoSet.clientid", "");
     const guild_id = await getDbP("autoSet.guildid", "");
@@ -23,41 +27,36 @@ router.get("/api/callback", async (req, res) => {
     const role = await getDbC("roles.verify", null);
 
     const status = (await getDbC("sistema", true)) ?? true;
-
-    if (!status) {
-        return res.status(400).json({ message: "`🔴` Oauth2 esta desligado", status: 400 });
-    }
+    if (!status) return res.status(400).json({ message: "`🔴` Oauth2 está desligado", status: 400 });
 
     const ip = requestIp.getClientIp(req);
     const { code } = req.query;
+    if (!code) return res.status(400).json({ message: "📡 | Está faltando query...", status: 400 });
 
-    if (!code) {
-        return res.status(400).json({ message: "📡 | Está faltando query...", status: 400 });
-    }
-
+    // Exibe o website
     website1(res, guild_id);
 
+    // Pega token do Discord
     const responseToken = await axios.post(
         "https://discord.com/api/oauth2/token",
         `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${process.env.URL_APIHOST}/api/callback&scope=identify`,
         { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
-
     const token2 = responseToken.data;
 
+    // Pega dados do usuário
     const responseUser = await axios.get("https://discord.com/api/users/@me", {
         headers: { authorization: `${token2.token_type} ${token2.access_token}` }
     }).catch(() => null);
-
     if (!responseUser?.data) return;
 
     const user = responseUser.data;
 
+    // Pega membro do servidor
     const guildMemberResponse = await axios.get(
         `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
         { headers: { Authorization: `Bot ${TOKEN}` } }
     ).catch(() => null);
-
     if (!guildMemberResponse) return;
 
     const currentRoles = guildMemberResponse.data.roles;
@@ -71,11 +70,9 @@ router.get("/api/callback", async (req, res) => {
         ).catch(() => null);
     }
 
+    // Datas e IDs
     const creationDate = new Date((user.id / 4194304 + 1420070400000));
-
-    const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
-        headers: { Authorization: `Bot ${TOKEN}` }
-    }).catch(console.error);
+    const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
 
     const avatarId = user.avatar;
     const userId = user.id;
@@ -85,13 +82,16 @@ router.get("/api/callback", async (req, res) => {
     const iconId = guildResponse.data.icon;
     const iconExtension = iconId?.startsWith("a_") ? "gif" : "png";
 
+    // Configurações de rastreio
     const altPuede = await getDbC("rastrear.ALT", false);
     const emailPuede = await getDbC("rastrear.EMAIL", false);
     const ipPuede = await getDbC("rastrear.IPUSER", false);
 
+    // Usuário existente pelo IP
     const dataAll = await users.find({}).toArray();
     const existingUser = dataAll.find(u => u.ipuser === ip);
 
+    // Cria embed
     const embed = new EmbedBuilder()
         .setColor("#00FF00")
         .setAuthor({ name: `${user.username} - Novo Usuário Verificado`, iconURL: `https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}` })
@@ -103,11 +103,9 @@ router.get("/api/callback", async (req, res) => {
     if (emailPuede) embed.addFields({ name: "Email", value: `\`📨 ${user.email}\``, inline: true });
 
     if (altPuede) {
-        if (existingUser && existingUser.ID !== user.id) {
+        if (existingUser && existingUser._id !== user.id) {
             embed.addFields({ name: "Account Alt", value: `\`🎯 Conta alt detectada!\`\n\`👤 @${user.username} - @${existingUser.username}\`` });
-            await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, {
-                headers: { Authorization: `Bot ${TOKEN}` }
-            }).catch(console.error);
+            await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
         } else {
             embed.addFields({ name: "Account Alt", value: "🔴 Não identificado(a).", inline: true });
         }
@@ -119,7 +117,7 @@ router.get("/api/callback", async (req, res) => {
 
     if (webhook_logs) await axios.post(webhook_logs, { content: `<@${user.id}>`, embeds: [embed.toJSON()] });
 
-    // Salva usuário no MongoDB
+    // Salva ou atualiza usuário no MongoDB
     await users.updateOne(
         { _id: user.id },
         { $set: {
