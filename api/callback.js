@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const { EmbedBuilder } = require("discord.js");
-const { dbC, dbP, users, getDbC, getDbP } = require("../databases/index");
+const { getDbC, getDbP, users } = require("../databases/index");
 const { Router } = require("express");
 const router = Router();
 const discordOauth = require("discord-oauth2");
@@ -14,12 +14,8 @@ const { website1 } = require("../functions/website1");
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
-    // Garante que o banco está inicializado
-    if (!dbC || !dbP || !users) {
-        return res.status(500).json({ message: "Banco de dados não inicializado ainda" });
-    }
-
-    // Pega configs do MongoDB
+  try {
+    // Pega configs do MongoDB usando funções assíncronas
     const clientid = await getDbP("autoSet.clientid", "");
     const guild_id = await getDbP("autoSet.guildid", "");
     const secret = await getDbP("manualSet.secretBot", "");
@@ -38,15 +34,15 @@ router.get("/api/callback", async (req, res) => {
 
     // Pega token do Discord
     const responseToken = await axios.post(
-        "https://discord.com/api/oauth2/token",
-        `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${process.env.URL_APIHOST}/api/callback&scope=identify`,
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      "https://discord.com/api/oauth2/token",
+      `client_id=${clientid}&client_secret=${secret}&code=${code}&grant_type=authorization_code&redirect_uri=${process.env.URL_APIHOST}/api/callback&scope=identify`,
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
     const token2 = responseToken.data;
 
     // Pega dados do usuário
     const responseUser = await axios.get("https://discord.com/api/users/@me", {
-        headers: { authorization: `${token2.token_type} ${token2.access_token}` }
+      headers: { authorization: `${token2.token_type} ${token2.access_token}` }
     }).catch(() => null);
     if (!responseUser?.data) return;
 
@@ -54,8 +50,8 @@ router.get("/api/callback", async (req, res) => {
 
     // Pega membro do servidor
     const guildMemberResponse = await axios.get(
-        `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
-        { headers: { Authorization: `Bot ${TOKEN}` } }
+      `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
+      { headers: { Authorization: `Bot ${TOKEN}` } }
     ).catch(() => null);
     if (!guildMemberResponse) return;
 
@@ -63,16 +59,18 @@ router.get("/api/callback", async (req, res) => {
     const newRoles = [...new Set([...currentRoles, role])];
 
     if (role) {
-        await axios.patch(
-            `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
-            { roles: newRoles },
-            { headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json" } }
-        ).catch(() => null);
+      await axios.patch(
+        `https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`,
+        { roles: newRoles },
+        { headers: { Authorization: `Bot ${TOKEN}`, "Content-Type": "application/json" } }
+      ).catch(() => null);
     }
 
     // Datas e IDs
     const creationDate = new Date((user.id / 4194304 + 1420070400000));
-    const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
+    const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
+      headers: { Authorization: `Bot ${TOKEN}` }
+    }).catch(console.error);
 
     const avatarId = user.avatar;
     const userId = user.id;
@@ -93,22 +91,22 @@ router.get("/api/callback", async (req, res) => {
 
     // Cria embed
     const embed = new EmbedBuilder()
-        .setColor("#00FF00")
-        .setAuthor({ name: `${user.username} - Novo Usuário Verificado`, iconURL: `https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}` })
-        .setThumbnail(`https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}`)
-        .addFields({ name: "Usuário", value: `\`@${user.username}\``, inline: true })
-        .setFooter({ text: guildResponse.data.name, iconURL: `https://cdn.discordapp.com/icons/${guildId}/${iconId}.${iconExtension}` })
-        .setTimestamp();
+      .setColor("#00FF00")
+      .setAuthor({ name: `${user.username} - Novo Usuário Verificado`, iconURL: `https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}` })
+      .setThumbnail(`https://cdn.discordapp.com/avatars/${userId}/${avatarId}.${avatarExtension}`)
+      .addFields({ name: "Usuário", value: `\`@${user.username}\``, inline: true })
+      .setFooter({ text: guildResponse.data.name, iconURL: `https://cdn.discordapp.com/icons/${guildId}/${iconId}.${iconExtension}` })
+      .setTimestamp();
 
     if (emailPuede) embed.addFields({ name: "Email", value: `\`📨 ${user.email}\``, inline: true });
 
     if (altPuede) {
-        if (existingUser && existingUser._id !== user.id) {
-            embed.addFields({ name: "Account Alt", value: `\`🎯 Conta alt detectada!\`\n\`👤 @${user.username} - @${existingUser.username}\`` });
-            await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
-        } else {
-            embed.addFields({ name: "Account Alt", value: "🔴 Não identificado(a).", inline: true });
-        }
+      if (existingUser && existingUser._id !== user.id) {
+        embed.addFields({ name: "Account Alt", value: `\`🎯 Conta alt detectada!\`\n\`👤 @${user.username} - @${existingUser.username}\`` });
+        await axios.delete(`https://discord.com/api/v9/guilds/${guild_id}/members/${user.id}`, { headers: { Authorization: `Bot ${TOKEN}` } }).catch(console.error);
+      } else {
+        embed.addFields({ name: "Account Alt", value: "🔴 Não identificado(a).", inline: true });
+      }
     }
 
     if (ipPuede) embed.addFields({ name: "Ip Info User", value: `||${ip}|| **| [🔗](<https://ipinfo.io/${ip}>)**`, inline: true });
@@ -119,17 +117,22 @@ router.get("/api/callback", async (req, res) => {
 
     // Salva ou atualiza usuário no MongoDB
     await users.updateOne(
-        { _id: user.id },
-        { $set: {
-            username: user.username,
-            acessToken: token2.access_token,
-            refreshToken: token2.refresh_token,
-            code,
-            email: user.email,
-            ipuser: ip
-        }},
-        { upsert: true }
+      { _id: user.id },
+      { $set: {
+        username: user.username,
+        acessToken: token2.access_token,
+        refreshToken: token2.refresh_token,
+        code,
+        email: user.email,
+        ipuser: ip
+      }},
+      { upsert: true }
     );
+
+  } catch (err) {
+    console.error("Erro no callback:", err);
+    return res.status(500).json({ message: "Erro interno no servidor" });
+  }
 });
 
 module.exports = router;
