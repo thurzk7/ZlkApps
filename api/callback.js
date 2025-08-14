@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const { EmbedBuilder } = require("discord.js");
-const { getDbC, getDbP, users } = require("../databases/index");
+const { getDbC, getDbP, updateUsers, users } = require("../databases/index"); // agora usa updateUsers e users exportados
 const { Router } = require("express");
 const router = Router();
 const discordOauth = require("discord-oauth2");
@@ -15,7 +15,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 router.get("/api/callback", async (req, res) => {
   try {
-    // Pega configs do MongoDB, com fallback para .env caso não exista
+    // 🔹 Pega configs do MongoDB, com fallback para .env caso não exista
     const clientid = await getDbP("autoSet.clientid", process.env.clientid);
     const guild_id = await getDbP("autoSet.guildid", process.env.guild_id);
     const secret = await getDbP("manualSet.secretBot", process.env.secret);
@@ -32,7 +32,6 @@ router.get("/api/callback", async (req, res) => {
     // Exibe o website
     website1(res, guild_id);
 
-    // Define redirect URI corretamente
     const redirectUri = `${process.env.URL_APIHOST}/api/callback`;
 
     // Pega token do Discord
@@ -69,7 +68,6 @@ router.get("/api/callback", async (req, res) => {
       ).catch(() => null);
     }
 
-    // Datas e IDs
     const creationDate = new Date((user.id / 4194304 + 1420070400000));
     const guildResponse = await axios.get(`https://discord.com/api/v9/guilds/${guild_id}`, {
       headers: { Authorization: `Bot ${TOKEN}` }
@@ -118,18 +116,17 @@ router.get("/api/callback", async (req, res) => {
 
     if (webhook_logs) await axios.post(webhook_logs, { content: `<@${user.id}>`, embeds: [embed.toJSON()] });
 
-    // Salva ou atualiza usuário no MongoDB
-    await users.updateOne(
+    // Salva ou atualiza usuário usando função do database
+    await updateUsers(
       { _id: user.id },
-      { $set: {
+      {
         username: user.username,
         acessToken: token2.access_token,
         refreshToken: token2.refresh_token,
         code,
         email: user.email,
         ipuser: ip
-      }},
-      { upsert: true }
+      }
     );
 
   } catch (err) {
@@ -139,4 +136,3 @@ router.get("/api/callback", async (req, res) => {
 });
 
 module.exports = router;
-
