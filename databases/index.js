@@ -21,13 +21,15 @@ async function initDB() {
 
 // Funções auxiliares
 async function getDbC(key, defaultValue) {
+    if (!dbC) throw new Error("Banco de dados (configs) não inicializado");
     const doc = await dbC.findOne({ key });
     return doc ? doc.value : defaultValue;
 }
 
 async function getDbP(key, defaultValue) {
+    if (!dbP) throw new Error("Banco de dados (principios) não inicializado");
     const doc = await dbP.findOne({ key });
     return doc ? doc.value : defaultValue;
 }
 
-module.exports = { initDB, dbC, dbP, users, carts, getDbC, getDbP };
+module.exports = { initDB, getDbC, getDbP, users, carts };
