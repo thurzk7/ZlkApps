@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { Client, GatewayIntentBits, Collection, Partials } = require("discord.js");
 const express = require("express");
-const { initDB, dbP } = require("./databases/index"); // importa dbP para atualizar clientid
+const { initDB, users, getDbP } = require("./databases/index"); // pegar getDbP ao invés de dbP
 const app = express();
 
 const client = new Client({
@@ -12,7 +12,7 @@ const client = new Client({
 module.exports = client;
 client.slashCommands = new Collection();
 
-// Token do Discord do .env
+// Token do Discord
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 client.login(TOKEN);
 
@@ -33,6 +33,7 @@ client.login(TOKEN);
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🌐 Servidor rodando na porta ${PORT}`);
     });
+
   } catch (err) {
     console.error("❌ Erro ao inicializar o MongoDB ou servidor:", err);
   }
@@ -42,8 +43,10 @@ client.on('ready', async () => {
   console.log(`✅ Bot conectado como ${client.user.tag}`);
 
   try {
-    // Atualiza clientid no dbP
-    await dbP.updateOne(
+    // Atualiza clientid usando getDbP e users/upsert (ou criar função update no DB)
+    await getDbP("autoSet.clientid", ""); // só para garantir que está inicializado
+    const db = require("./databases/index"); // pega o module novamente
+    await db.users.updateOne(
       { key: "autoSet.clientid" },
       { $set: { value: client.user.id } },
       { upsert: true }
@@ -55,7 +58,8 @@ client.on('ready', async () => {
   // Atualiza clientid a cada 1h
   setInterval(async () => {
     try {
-      await dbP.updateOne(
+      const db = require("./databases/index");
+      await db.users.updateOne(
         { key: "autoSet.clientid" },
         { $set: { value: client.user.id } },
         { upsert: true }
