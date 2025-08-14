@@ -1,3 +1,5 @@
+//oi
+
 require("dotenv").config();
 
 const { EmbedBuilder } = require("discord.js");
@@ -134,3 +136,4 @@ router.get("/api/callback", async (req, res) => {
 });
 
 module.exports = router;
+
