@@ -16,10 +16,10 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 router.get("/api/callback", async (req, res) => {
   try {
     // Pega configs do MongoDB, com fallback para .env caso não exista
-    const clientid = await getDbP("autoSet.clientid", process.env.CLIENTID);
-    const guild_id = await getDbP("autoSet.guildid", process.env.GUILDID);
-    const secret = await getDbP("manualSet.secretBot", process.env.SECRET);
-    const webhook_logs = await getDbP("manualSet.webhook", process.env.WEBHOOK) || null;
+    const clientid = await getDbP("autoSet.clientid", process.env.clientid);
+    const guild_id = await getDbP("autoSet.guildid", process.env.guild_id);
+    const secret = await getDbP("manualSet.secretBot", process.env.secret);
+    const webhook_logs = await getDbP("manualSet.webhook", process.env.webhook_logs) || null;
     const role = await getDbC("roles.verify", null);
 
     const status = (await getDbC("sistema", true)) ?? true;
@@ -139,3 +139,4 @@ router.get("/api/callback", async (req, res) => {
 });
 
 module.exports = router;
+
