@@ -21,15 +21,25 @@ async function initDB() {
 
 // Funções auxiliares
 async function getDbC(key, defaultValue) {
-    if (!dbC) throw new Error("Banco de dados (configs) não inicializado");
+    if (!initialized) await initDB(); // força inicialização se ainda não inicializado
     const doc = await dbC.findOne({ key });
     return doc ? doc.value : defaultValue;
 }
 
 async function getDbP(key, defaultValue) {
-    if (!dbP) throw new Error("Banco de dados (principios) não inicializado");
+    if (!initialized) await initDB(); // força inicialização se ainda não inicializado
     const doc = await dbP.findOne({ key });
     return doc ? doc.value : defaultValue;
 }
 
-module.exports = { initDB, getDbC, getDbP, users, carts };
+async function updateDbP(key, value) {
+    if (!initialized) await initDB();
+    return await dbP.updateOne({ key }, { $set: { value } }, { upsert: true });
+}
+
+async function updateUsers(filter, data) {
+    if (!initialized) await initDB();
+    return await users.updateOne(filter, { $set: data }, { upsert: true });
+}
+
+module.exports = { initDB, getDbC, getDbP, updateDbP, updateUsers };
