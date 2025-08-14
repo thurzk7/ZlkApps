@@ -1,8 +1,7 @@
 const { MongoClient } = require("mongodb");
-require("dotenv").config(); // Carrega .env
+require("dotenv").config();
 
-const uri = process.env.MONGO_URI;
-const client = new MongoClient(uri);
+const client = new MongoClient(process.env.MONGO_URI);
 
 let dbC, dbP, users, carts;
 
@@ -16,9 +15,15 @@ async function initDB() {
     carts = db.collection("carts");
 }
 
-async function getConfig(key, defaultValue) {
+// Funções auxiliares para substituir .get()
+async function getDbC(key, defaultValue) {
     const doc = await dbC.findOne({ key });
     return doc ? doc.value : defaultValue;
 }
 
-module.exports = { initDB, dbC, dbP, users, carts, getConfig };
+async function getDbP(key, defaultValue) {
+    const doc = await dbP.findOne({ key });
+    return doc ? doc.value : defaultValue;
+}
+
+module.exports = { initDB, dbC, dbP, users, carts, getDbC, getDbP };
